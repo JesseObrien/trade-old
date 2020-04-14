@@ -47,7 +47,6 @@ func (m *Market) Run() {
 	m.IPO(s)
 
 	trader := NewTrader("Jesse O'Brien", 4000)
-
 	m.logger.Infof("🤑 A new trader appears: %s", trader.Name)
 
 	go m.Process()
@@ -55,7 +54,6 @@ func (m *Market) Run() {
 	m.Orders <- NewMarketOrder(s.Name, trader, 100)
 
 	<-m.quit
-
 	m.logger.Info("⏳ Shutting down...")
 }
 
