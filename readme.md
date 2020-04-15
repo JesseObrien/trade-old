@@ -2,6 +2,18 @@
 
 An attempt at a Stock Exchange Simulation
 
+## Build and Run
+
+go build -o dist/trade cmd/trade/main.go && ./dist/trade
+
+## Build
+
+go build -o dist/trade cmd/trade/main.go
+
+## Run
+
+./dist/trade
+
 ### Reading
 
 - https://www.investopedia.com/articles/investing/082614/how-stock-market-works.asp
