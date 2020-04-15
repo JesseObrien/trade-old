@@ -1,12 +1,16 @@
 package service
 
+import "github.com/google/uuid"
+
 type Order interface {
+	GetID() string
 	Symbol() string
 	Trader() *Trader
 	Shares() int64
 }
 
 type MarketOrder struct {
+	ID     string
 	symbol string
 	trader *Trader
 	shares int64
@@ -14,10 +18,15 @@ type MarketOrder struct {
 
 func NewMarketOrder(symbol string, trader *Trader, shares int64) *MarketOrder {
 	return &MarketOrder{
-		symbol,
-		trader,
-		shares,
+		ID:     uuid.New().String(),
+		symbol: symbol,
+		trader: trader,
+		shares: shares,
 	}
+}
+
+func (m *MarketOrder) GetID() string {
+	return m.ID
 }
 
 func (m *MarketOrder) Symbol() string {

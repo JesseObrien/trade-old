@@ -17,6 +17,7 @@ type Market struct {
 }
 
 type Trade struct {
+	ID     string
 	Price  int64
 	Buyer  string
 	Seller string
@@ -37,7 +38,6 @@ func NewMarket(logger log.Logger) *Market {
 }
 
 func (m *Market) Run() {
-
 	m.quit = make(chan os.Signal, 1)
 	signal.Notify(m.quit, os.Interrupt)
 
