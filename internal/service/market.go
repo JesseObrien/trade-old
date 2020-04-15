@@ -46,8 +46,7 @@ func (m *Market) Run() {
 	s := NewSymbol("JOBR", 200, 1000)
 	m.IPO(s)
 
-	trader := NewTrader("Jesse O'Brien", 4000)
-	m.logger.Infof("🤑 A new trader appears: %s", trader.Name)
+	trader := &Trader{Name: "Jesse O'Brien", AvailableFunds: 4000}
 
 	go m.Process()
 

@@ -26,7 +26,9 @@ func main() {
 
 	go market.Run()
 
-	httpSrv := httpsrv.NewHTTPServer(logger)
+	traderStore := service.NewTraderStore(logger)
+
+	httpSrv := httpsrv.NewHTTPServer(logger, traderStore)
 
 	go httpSrv.Run()
 
