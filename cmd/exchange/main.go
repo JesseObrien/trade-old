@@ -6,8 +6,8 @@ import (
 
 	"github.com/apex/log"
 	"github.com/apex/log/handlers/cli"
+	"github.com/jesseobrien/trade/internal/exchange"
 	"github.com/jesseobrien/trade/internal/httpsrv"
-	"github.com/jesseobrien/trade/internal/service"
 )
 
 func main() {
@@ -22,13 +22,11 @@ func main() {
 
 	logger.Info("📈 Welcome to Trade 📈")
 
-	market := service.NewMarket(logger)
+	exchange := exchange.New(logger)
 
-	go market.Run()
+	go exchange.Run()
 
-	traderStore := service.NewTraderStore(logger)
-
-	httpSrv := httpsrv.NewHTTPServer(logger, traderStore)
+	httpSrv := httpsrv.NewHTTPServer(logger)
 
 	go httpSrv.Run()
 

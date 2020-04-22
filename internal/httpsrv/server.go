@@ -4,42 +4,24 @@ import (
 	"net/http"
 
 	"github.com/apex/log"
-	"github.com/jesseobrien/trade/internal/service"
 	"github.com/labstack/echo/v4"
-	"github.com/pkg/errors"
 )
 
 type HttpSrv struct {
-	logger      log.Logger
-	traderStore *service.TraderStore
+	logger log.Logger
 }
 
-func NewHTTPServer(logger log.Logger, traderStore *service.TraderStore) *HttpSrv {
+func NewHTTPServer(logger log.Logger) *HttpSrv {
 	return &HttpSrv{
 		logger,
-		traderStore,
 	}
 }
 
 func (h *HttpSrv) Run() {
 	e := echo.New()
 
-	e.POST("/traders", func(c echo.Context) error {
-
-		trader := &service.Trader{}
-
-		if err := c.Bind(trader); err != nil {
-			err = errors.Wrapf(err, "Could not bind request body")
-			h.logger.Error(err.Error())
-			return c.JSON(http.StatusBadRequest, err)
-		}
-
-		if err := h.traderStore.Write(trader); err != nil {
-			h.logger.Errorf("error writing to database", err)
-			return c.JSON(http.StatusInternalServerError, "database issue")
-		}
-
-		return c.JSON(http.StatusCreated, trader)
+	e.POST("/orders", func(ctx echo.Context) error {
+		return ctx.JSON(http.StatusAccepted, nil)
 	})
 
 	e.Logger.Fatal(e.Start(":8080"))

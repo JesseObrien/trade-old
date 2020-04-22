@@ -1,4 +1,4 @@
-package service
+package market
 
 import (
 	"errors"
@@ -9,10 +9,9 @@ import (
 )
 
 type Trader struct {
-	Identifier     string  `json:"id"`
-	Name           string  `json:"name"`
-	AvailableFunds int64   `json:"funds"`
-	Trades         []Trade `json:",omitempty"`
+	Identifier     string `json:"id"`
+	Name           string `json:"name"`
+	AvailableFunds int64  `json:"funds"`
 }
 
 type TraderStore struct {
