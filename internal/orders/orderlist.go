@@ -33,7 +33,7 @@ func (ol OrderList) Less(i, j int) bool { return ol.orders.Less(i, j) }
 func (ol *OrderList) Display() string {
 	bids := strings.Builder{}
 	for _, bid := range ol.orders {
-		bids.WriteString(fmt.Sprintf("Price: $%s | Quantity: %s", bid.Price.StringFixed(2), bid.OpenQuantity().String()))
+		bids.WriteString(fmt.Sprintf("Price: $%s | Quantity: %s\n", bid.Price.StringFixed(2), bid.OpenQuantity().String()))
 	}
 
 	return bids.String()

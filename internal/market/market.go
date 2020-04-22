@@ -10,8 +10,8 @@ import (
 type Market struct {
 	logger     log.Logger
 	Symbol     string
-	Bids       orders.OrderList
-	Offers     orders.OrderList
+	Bids       *orders.OrderList
+	Offers     *orders.OrderList
 	Executions []Execution
 }
 
@@ -19,20 +19,20 @@ func New(logger log.Logger, symbol string) *Market {
 	return &Market{
 		logger: logger,
 		Symbol: symbol,
-		Bids:   orders.OrderList{},
-		Offers: orders.OrderList{},
+		Bids:   &orders.OrderList{},
+		Offers: &orders.OrderList{},
 	}
 }
 
 func (m *Market) Report() string {
 
 	return fmt.Sprintf(`
-	Market Report for %s
+Market Report for %s
 
-	Open Bids:
-	%s
-	Open Offers:
-	%s
+Open Bids:
+%s
+Open Offers:
+%s
 `, m.Symbol, m.Bids.Display(), m.Offers.Display())
 }
 

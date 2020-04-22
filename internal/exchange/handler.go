@@ -39,12 +39,12 @@ func (ex *Exchange) onNewOrder(order *orders.Order) {
 
 	for _, m := range matches {
 		ex.logger.WithFields(log.Fields{
-			"Symbol":    m.Symbol,
-			"OrderType": m.Type,
-			"Side":      m.Side,
-			"QtyFilled": m.ExecutedQuantity,
-			"Price":     m.Price.StringFixed(2),
-			"Value":     m.Price.Mul(order.ExecutedQuantity).StringFixed(2),
+			"Symbol":        m.Symbol,
+			"OrderType":     m.Type,
+			"Side":          m.Side,
+			"QtyFilled":     m.ExecutedQuantity,
+			"ExecutedPrice": m.LastExecutedPrice.StringFixed(2),
+			"Value":         m.LastExecutedPrice.Mul(order.ExecutedQuantity).StringFixed(2),
 		}).Info("Order Executed")
 	}
 

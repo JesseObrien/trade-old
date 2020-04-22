@@ -39,11 +39,6 @@ func (ex *Exchange) Run() {
 	price, _ := decimal.NewFromString("2.00")
 	ex.IPO(m, price, 10000)
 
-	o := orders.NewMarketOrder(m.Symbol, 100)
-	o.Side = orders.BUYSIDE
-
-	ex.Orders <- o
-
 	<-ex.quit
 	ex.logger.Info("⏳ Shutting down...")
 }
@@ -69,6 +64,6 @@ func (ex *Exchange) IPO(m *market.Market, price decimal.Decimal, sharesIssued in
 	ex.Orders <- o
 }
 
-func (ex *Exchange) SubmitOrder(orders *orders.Order) {
-
+func (ex *Exchange) SubmitOrder(order *orders.Order) {
+	ex.Orders <- order
 }

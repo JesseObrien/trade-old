@@ -22,15 +22,15 @@ const (
 )
 
 type Order struct {
-	ID                   string `json:"-"`
-	TargetFirmID         string
-	SendingFirmID        string
+	ID                   string          `json:"-"`
+	TargetFirmID         string          `json:"to,omitempty"`
+	SendingFirmID        string          `json:"from,omitempty"`
 	Symbol               string          `json:"symbol"`
 	Type                 OrderType       `json:"order_type"`
-	Price                decimal.Decimal `json:"price"`
+	Price                decimal.Decimal `json:"price,omitempty"`
+	Side                 OrderSide       `json:"order_side"`
+	Quantity             decimal.Decimal `json:"quantity"`
 	LastExecutedPrice    decimal.Decimal
-	Side                 OrderSide
-	Quantity             decimal.Decimal
 	ExecutedQuantity     decimal.Decimal
 	LastExecutedQuantity decimal.Decimal
 	openQuantity         *decimal.Decimal

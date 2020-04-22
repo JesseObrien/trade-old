@@ -22,11 +22,11 @@ func main() {
 
 	logger.Info("📈 Welcome to Trade 📈")
 
-	exchange := exchange.New(logger)
+	ex := exchange.New(logger)
 
-	go exchange.Run()
+	go ex.Run()
 
-	httpSrv := httpsrv.NewHTTPServer(logger)
+	httpSrv := httpsrv.NewHTTPServer(logger, ex)
 
 	go httpSrv.Run()
 
