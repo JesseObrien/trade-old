@@ -5,24 +5,24 @@ import (
 	"os/signal"
 
 	"github.com/apex/log"
+	"github.com/nats-io/nats.go"
 
 	"github.com/jesseobrien/trade/internal/market"
-	"github.com/jesseobrien/trade/internal/orders"
 	"github.com/shopspring/decimal"
 )
 
 type Exchange struct {
-	logger  log.Logger
-	Symbols map[string]*market.Market
-	Orders  chan *orders.Order
-	quit    chan os.Signal
+	logger   log.Logger
+	Symbols  map[string]*market.Market
+	quit     chan os.Signal
+	natsConn *nats.EncodedConn
 }
 
-func New(logger log.Logger) *Exchange {
+func New(logger log.Logger, conn *nats.EncodedConn) *Exchange {
 	return &Exchange{
-		logger:  logger,
-		Symbols: map[string]*market.Market{},
-		Orders:  make(chan *orders.Order),
+		logger:   logger,
+		Symbols:  map[string]*market.Market{},
+		natsConn: conn,
 	}
 }
 
@@ -55,15 +55,9 @@ func (ex *Exchange) IPO(m *market.Market, price decimal.Decimal, sharesIssued in
 	ex.Symbols[m.Symbol] = m
 	// @TODO inject an offer with all of the shares at the price
 
-	o := orders.New(m.Symbol)
-	o.Quantity = quantityShares
-	o.Price = price
-	o.Side = orders.SELLSIDE
-	o.Type = orders.MARKET
-
-	ex.Orders <- o
-}
-
-func (ex *Exchange) SubmitOrder(order *orders.Order) {
-	ex.Orders <- order
+	// o := orders.New(m.Symbol)
+	// o.Quantity = quantityShares
+	// o.Price = price
+	// o.Side = orders.SELLSIDE
+	// o.Type = orders.MARKET
 }

@@ -1,40 +1,32 @@
 package httpsrv
 
 import (
-	"net/http"
-
 	"github.com/apex/log"
-	"github.com/jesseobrien/trade/internal/exchange"
-	"github.com/jesseobrien/trade/internal/orders"
 	"github.com/labstack/echo/v4"
+
+	nats "github.com/nats-io/nats.go"
 )
 
-type HttpSrv struct {
-	logger   log.Logger
-	exchange *exchange.Exchange
+// HTTPSrv is a new HTTP Server
+type HTTPSrv struct {
+	logger log.Logger
+	conn   *nats.EncodedConn
 }
 
-func NewHTTPServer(logger log.Logger, exchange *exchange.Exchange) *HttpSrv {
-	return &HttpSrv{
+// NewHTTPServer factories out a new HTTP Server
+func NewHTTPServer(logger log.Logger, conn *nats.EncodedConn) *HTTPSrv {
+	return &HTTPSrv{
 		logger,
-		exchange,
+		conn,
 	}
 }
 
-func (h *HttpSrv) Run() {
+// Run starts the HTTP server and binds all handlers
+func (h *HTTPSrv) Run() {
 	e := echo.New()
+	e.HideBanner = true
 
-	e.POST("/orders", func(ctx echo.Context) error {
-		order := &orders.Order{}
-
-		if err := ctx.Bind(order); err != nil {
-			return ctx.JSON(http.StatusBadRequest, err)
-		}
-
-		h.exchange.SubmitOrder(order)
-
-		return ctx.JSON(http.StatusAccepted, nil)
-	})
+	e.POST("/orders", h.NewOrder)
 
 	e.Logger.Fatal(e.Start(":8080"))
 }

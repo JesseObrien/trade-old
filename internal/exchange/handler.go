@@ -6,9 +6,13 @@ import (
 )
 
 func (exch *Exchange) HandleOrders() {
+
+	newOrdersChan := make(chan *orders.Order)
+	exch.natsConn.BindRecvChan("order.created", newOrdersChan)
+
 	for {
 		select {
-		case order := <-exch.Orders:
+		case order := <-newOrdersChan:
 			go exch.onNewOrder(order)
 		case <-exch.quit:
 			exch.Stop()
@@ -49,7 +53,6 @@ func (ex *Exchange) onNewOrder(order *orders.Order) {
 	}
 
 	ex.logger.Info(market.Report())
-
 }
 
 func (ex *Exchange) Match(o *orders.Order) {
