@@ -18,12 +18,12 @@ func (ex *Exchange) HandleCancelOrderRequest() {
 		var message string
 		var cancelled bool
 
-		market, ok := ex.Symbols[request.Symbol]
+		orderbook, ok := ex.Symbols[request.Symbol]
 
 		if !ok {
-			message = fmt.Sprintf("no market found for symbol %s", request.Symbol)
+			message = fmt.Sprintf("no orderbook found for symbol %s", request.Symbol)
 		} else {
-			cancelledOrder := market.Cancel(request.OrderID)
+			cancelledOrder := orderbook.Cancel(request.OrderID)
 			cancelled = true
 
 			if cancelledOrder == nil {
@@ -32,7 +32,7 @@ func (ex *Exchange) HandleCancelOrderRequest() {
 			}
 		}
 
-		ex.logger.Info(market.Report())
+		ex.logger.Info(orderbook.Report())
 
 		ex.natsConn.Publish(replySubject, &requests.CancelOrderResponse{
 			Request:   request,

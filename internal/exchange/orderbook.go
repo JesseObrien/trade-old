@@ -1,4 +1,4 @@
-package market
+package exchange
 
 import (
 	"bytes"
@@ -9,7 +9,7 @@ import (
 	"github.com/jesseobrien/trade/internal/orders"
 )
 
-type Market struct {
+type OrderBook struct {
 	logger     log.Logger
 	Symbol     string
 	Bids       *orders.OrderList
@@ -19,8 +19,8 @@ type Market struct {
 	mu sync.Mutex
 }
 
-func New(logger log.Logger, symbol string) *Market {
-	return &Market{
+func NewOrderBook(logger log.Logger, symbol string) *OrderBook {
+	return &OrderBook{
 		logger: logger,
 		Symbol: symbol,
 		Bids:   &orders.OrderList{},
@@ -28,8 +28,8 @@ func New(logger log.Logger, symbol string) *Market {
 	}
 }
 
-const displayMarketOrders = `
-# Market Report for **{{.Symbol}}**
+const displayOrderBookOrders = `
+# OrderBook Report for **{{.Symbol}}**
 
 | Open Bids |---|---|
 | ID | Price | Quantity |
@@ -42,10 +42,10 @@ const displayMarketOrders = `
 {{- .Offers.Display -}}
 `
 
-// Report writes out the current market report for the symbol
-func (m *Market) Report() string {
+// Report writes out the current orderbook report for the symbol
+func (m *OrderBook) Report() string {
 	var buf bytes.Buffer
-	t := template.Must(template.New("market").Parse(displayMarketOrders))
+	t := template.Must(template.New("orderbook").Parse(displayOrderBookOrders))
 
 	err := t.Execute(&buf, struct {
 		Symbol string
@@ -65,7 +65,7 @@ func (m *Market) Report() string {
 }
 
 // Insert puts an order into the orderlist
-func (m *Market) Insert(order *orders.Order) {
+func (m *OrderBook) Insert(order *orders.Order) {
 	if order.Side == orders.BUYSIDE {
 		m.Bids.Insert(order)
 	} else {
@@ -74,7 +74,7 @@ func (m *Market) Insert(order *orders.Order) {
 }
 
 // Cancel will cancel an order
-func (m *Market) Cancel(oid string) (order *orders.Order) {
+func (m *OrderBook) Cancel(oid string) (order *orders.Order) {
 	order = m.Bids.Remove(oid)
 
 	if order == nil {
@@ -88,11 +88,11 @@ func (m *Market) Cancel(oid string) (order *orders.Order) {
 	return
 }
 
-func (m *Market) Match() (matches []orders.Order) {
-	// @TODO this method works for matching market orders, need to figure out a way to match others
+func (m *OrderBook) Match() (matches []orders.Order) {
+	// @TODO this method works for matching orders, need to figure out a way to match others
 
+	m.mu.Lock()
 	for m.Bids.Len() > 0 && m.Offers.Len() > 0 {
-		m.mu.Lock()
 		bestBid := m.Bids.GetBest()
 		bestOffer := m.Offers.GetBest()
 
@@ -121,8 +121,9 @@ func (m *Market) Match() (matches []orders.Order) {
 		if bestOffer.IsClosed() {
 			m.Offers.Remove(bestOffer.ID)
 		}
-		m.mu.Unlock()
 	}
+
+	m.mu.Unlock()
 
 	return
 }

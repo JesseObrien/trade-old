@@ -5,16 +5,16 @@ import (
 	"github.com/jesseobrien/trade/internal/orders"
 )
 
-func (exch *Exchange) HandleNewOrders() {
+func (ex *Exchange) HandleNewOrders() {
 
 	newOrdersChan := make(chan *orders.Order)
-	exch.natsConn.BindRecvChan("order.created", newOrdersChan)
+	ex.natsConn.BindRecvChan("order.created", newOrdersChan)
 
 	for {
 		select {
 		case order := <-newOrdersChan:
-			go exch.onNewOrder(order)
-		case <-exch.quit:
+			go ex.onNewOrder(order)
+		case <-ex.quit:
 			return
 		}
 	}
@@ -31,16 +31,16 @@ func (ex *Exchange) onNewOrder(order *orders.Order) {
 		"Value":     order.Price.Mul(order.Quantity).StringFixed(2),
 	}).Info("💸 A new order was received!")
 
-	market, ok := ex.Symbols[order.Symbol]
+	orderbook, ok := ex.Symbols[order.Symbol]
 	if !ok {
 		ex.logger.WithFields(log.Fields{
 			"Symbol": order.Symbol,
 		}).Error("symbol is not registered with the exchange")
 		return
 	}
-	market.Insert(order)
+	orderbook.Insert(order)
 
-	matches := market.Match()
+	matches := orderbook.Match()
 
 	for _, m := range matches {
 		ex.logger.WithFields(log.Fields{
@@ -53,7 +53,7 @@ func (ex *Exchange) onNewOrder(order *orders.Order) {
 		}).Info("Order Executed")
 	}
 
-	ex.logger.Info(market.Report())
+	ex.logger.Info(orderbook.Report())
 }
 
 func (ex *Exchange) Match(o *orders.Order) {
