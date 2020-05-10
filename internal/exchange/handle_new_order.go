@@ -38,20 +38,8 @@ func (ex *Exchange) onNewOrder(order *orders.Order) {
 		}).Error("symbol is not registered with the exchange")
 		return
 	}
+
 	orderbook.Insert(order)
-
-	matches := orderbook.Match()
-
-	for _, m := range matches {
-		ex.logger.WithFields(log.Fields{
-			"Symbol":        m.Symbol,
-			"OrderType":     m.Type,
-			"Side":          m.Side,
-			"QtyFilled":     m.ExecutedQuantity,
-			"ExecutedPrice": m.LastExecutedPrice.StringFixed(2),
-			"Value":         m.LastExecutedPrice.Mul(order.ExecutedQuantity).StringFixed(2),
-		}).Info("Order Executed")
-	}
 
 	ex.logger.Info(orderbook.Report())
 }

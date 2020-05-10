@@ -57,8 +57,13 @@ func (ol *OrderList) Display() string {
 }
 
 // GetBest gets the first order from the orders
-func (ol *OrderList) GetBest() (order *Order) {
+func (ol *OrderList) GetMax() (order *Order) {
 	order = ol.orders[0]
+	return
+}
+
+func (ol *OrderList) GetMin() (order *Order) {
+	order = ol.orders[len(ol.orders)-1]
 	return
 }
 

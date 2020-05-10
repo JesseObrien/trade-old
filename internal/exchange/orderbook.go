@@ -7,6 +7,7 @@ import (
 
 	"github.com/apex/log"
 	"github.com/jesseobrien/trade/internal/orders"
+	"github.com/shopspring/decimal"
 )
 
 type OrderBook struct {
@@ -15,6 +16,8 @@ type OrderBook struct {
 	Bids       *orders.OrderList
 	Offers     *orders.OrderList
 	Executions []Execution
+
+	MarketPrice decimal.Decimal
 
 	mu sync.Mutex
 }
@@ -43,7 +46,7 @@ const displayOrderBookOrders = `
 `
 
 // Report writes out the current orderbook report for the symbol
-func (m *OrderBook) Report() string {
+func (ob *OrderBook) Report() string {
 	var buf bytes.Buffer
 	t := template.Must(template.New("orderbook").Parse(displayOrderBookOrders))
 
@@ -52,9 +55,9 @@ func (m *OrderBook) Report() string {
 		Bids   *orders.OrderList
 		Offers *orders.OrderList
 	}{
-		m.Symbol,
-		m.Bids,
-		m.Offers,
+		ob.Symbol,
+		ob.Bids,
+		ob.Offers,
 	})
 
 	if err != nil {
@@ -65,20 +68,24 @@ func (m *OrderBook) Report() string {
 }
 
 // Insert puts an order into the orderlist
-func (m *OrderBook) Insert(order *orders.Order) {
+func (ob *OrderBook) Insert(order *orders.Order) {
 	if order.Side == orders.BUYSIDE {
-		m.Bids.Insert(order)
+		if !ob.FillBuy(order) {
+			ob.Bids.Insert(order)
+		}
 	} else {
-		m.Offers.Insert(order)
+		if !ob.FillSell(order) {
+			ob.Offers.Insert(order)
+		}
 	}
 }
 
 // Cancel will cancel an order
-func (m *OrderBook) Cancel(oid string) (order *orders.Order) {
-	order = m.Bids.Remove(oid)
+func (ob *OrderBook) Cancel(oid string) (order *orders.Order) {
+	order = ob.Bids.Remove(oid)
 
 	if order == nil {
-		order = m.Offers.Remove(oid)
+		order = ob.Offers.Remove(oid)
 	}
 
 	if order != nil {
@@ -88,42 +95,155 @@ func (m *OrderBook) Cancel(oid string) (order *orders.Order) {
 	return
 }
 
-func (m *OrderBook) Match() (matches []orders.Order) {
-	// @TODO this method works for matching orders, need to figure out a way to match others
+func (ob *OrderBook) FillBuy(buyOrder *orders.Order) bool {
+	lwf := ob.logger.WithFields(log.Fields{
+		"ID":       buyOrder.ID,
+		"Price":    buyOrder.Price.StringFixed(2),
+		"Quantity": buyOrder.Quantity.String(),
+	})
 
-	m.mu.Lock()
-	for m.Bids.Len() > 0 && m.Offers.Len() > 0 {
-		bestBid := m.Bids.GetBest()
-		bestOffer := m.Offers.GetBest()
+	lwf.Info("received buy order, attempting to fill")
 
-		price := bestOffer.Price
-		quantity := bestBid.OpenQuantity()
+	for {
 
-		// @TODO figure out limit orders
-		// if bestBid.Type == orders.LIMIT && bestBid.Price.Cmp(bestOffer.Price) {
-		// 	x
-		// }
-
-		if offerQuantity := bestOffer.OpenQuantity(); offerQuantity.Cmp(quantity) == -1 {
-			quantity = offerQuantity
+		if ob.Offers.Len() == 0 {
+			return false
 		}
 
-		// @TODO probably need mutex locks while we match orders and then possibly remove them
-		bestBid.Execute(price, quantity)
-		bestOffer.Execute(price, quantity)
+		sellOrder := ob.Offers.GetMin()
 
-		matches = append(matches, *bestBid, *bestOffer)
+		if buyOrder.Price.Cmp(sellOrder.Price) != -1 {
+			if buyOrder.OpenQuantity().Cmp(sellOrder.OpenQuantity()) == 1 {
+				lwf.Info("matched partial sell")
+				price := sellOrder.Price
+				quantity := sellOrder.OpenQuantity()
 
-		if bestBid.IsClosed() {
-			m.Bids.Remove(bestBid.ID)
+				buyOrder.Execute(price, quantity)
+				sellOrder.Execute(price, quantity)
+
+				ob.Offers.Remove(sellOrder.ID)
+				continue
+			}
+
+			if sellOrder.OpenQuantity().Cmp(buyOrder.OpenQuantity()) == 1 {
+				lwf.Info("matched full sell")
+				price := sellOrder.Price
+				quantity := buyOrder.OpenQuantity()
+
+				buyOrder.Execute(price, quantity)
+				sellOrder.Execute(price, quantity)
+
+				return true
+			}
+
+			if sellOrder.OpenQuantity().Cmp(buyOrder.OpenQuantity()) == 0 {
+				lwf.Info("matched matched exact sell")
+				price := sellOrder.Price
+				quantity := buyOrder.OpenQuantity()
+
+				buyOrder.Execute(price, quantity)
+				sellOrder.Execute(price, quantity)
+
+				ob.Offers.Remove(sellOrder.ID)
+
+				return true
+			}
 		}
 
-		if bestOffer.IsClosed() {
-			m.Offers.Remove(bestOffer.ID)
-		}
+		lwf.Info("could not fill buy")
+
+		return false
 	}
-
-	m.mu.Unlock()
-
-	return
 }
+
+func (ob *OrderBook) FillSell(sellOrder *orders.Order) bool {
+	lwf := ob.logger.WithFields(log.Fields{
+		"ID":       sellOrder.ID,
+		"Price":    sellOrder.Price.StringFixed(2),
+		"Quantity": sellOrder.Quantity.String(),
+	})
+
+	lwf.Info("received sell order, attempting to fill")
+
+	for {
+
+		if ob.Bids.Len() == 0 {
+			return false
+		}
+
+		buyOrder := ob.Bids.GetMax()
+
+		if buyOrder.Price.Cmp(sellOrder.Price) != -1 {
+
+			if buyOrder.OpenQuantity().Cmp(sellOrder.OpenQuantity()) == 1 {
+				lwf.Info("matched full buy")
+				price := buyOrder.Price
+				quantity := sellOrder.Quantity
+
+				buyOrder.Execute(price, quantity)
+				sellOrder.Execute(price, quantity)
+
+				return true
+			}
+
+			// sell amount is larger
+			if sellOrder.OpenQuantity().Cmp(buyOrder.OpenQuantity()) == 1 {
+				lwf.Info("matched partial buy")
+				price := buyOrder.Price
+				quantity := buyOrder.OpenQuantity()
+
+				buyOrder.Execute(price, quantity)
+				sellOrder.Execute(price, quantity)
+
+				ob.Bids.Remove(buyOrder.ID)
+
+				continue
+			}
+
+			// buy and sell are same
+			if sellOrder.OpenQuantity().Cmp(buyOrder.OpenQuantity()) == 0 {
+				lwf.Info("matched exact buy")
+				price := buyOrder.Price
+				quantity := sellOrder.OpenQuantity()
+
+				buyOrder.Execute(price, quantity)
+				sellOrder.Execute(price, quantity)
+
+				ob.Bids.Remove(buyOrder.ID)
+				return true
+			}
+		}
+		lwf.Info("could not fill sell")
+
+		return false
+	}
+}
+
+// ob.mu.Lock()
+// 	for ob.Bids.Len() > 0 && ob.Offers.Len() > 0 {
+// 		bestBid := ob.Bids.GetBest()
+// 		bestOffer := ob.Offers.GetBest()
+
+// 		price := bestOffer.Price
+// 		quantity := bestBid.OpenQuantity()
+
+// 		if offerQuantity := bestOffer.OpenQuantity(); offerQuantity.Cmp(quantity) == -1 {
+// 			quantity = offerQuantity
+// 		}
+
+// 		// @TODO probably need mutex locks while we match orders and then possibly remove them
+// 		bestBid.Execute(price, quantity)
+// 		bestOffer.Execute(price, quantity)
+
+// 		matches = append(matches, *bestBid, *bestOffer)
+
+// 		if bestBid.IsClosed() {
+// 			ob.Bids.Remove(bestBid.ID)
+// 		}
+
+// 		if bestOffer.IsClosed() {
+// 			ob.Offers.Remove(bestOffer.ID)
+// 		}
+// 	}
+
+// 	ob.mu.Unlock()

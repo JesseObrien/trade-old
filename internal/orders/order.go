@@ -97,7 +97,6 @@ func (o *Order) Execute(price, quantity decimal.Decimal) {
 	o.ExecutedQuantity = o.ExecutedQuantity.Add(quantity)
 	o.LastExecutedPrice = price
 	o.LastExecutedQuantity = quantity
-
 }
 
 // Cancel cancels an order
