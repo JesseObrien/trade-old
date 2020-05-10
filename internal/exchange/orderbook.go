@@ -95,6 +95,8 @@ func (ob *OrderBook) Cancel(oid string) (order *orders.Order) {
 	return
 }
 
+// Inspiration https://github.com/fmstephe/matching_engine/blob/1f9ff299e0fc65cefd7acd0a637d5764575f4996/matcher/matcher.go
+
 func (ob *OrderBook) FillBuy(buyOrder *orders.Order) bool {
 	lwf := ob.logger.WithFields(log.Fields{
 		"ID":       buyOrder.ID,
