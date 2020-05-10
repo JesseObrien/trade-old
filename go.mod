@@ -9,4 +9,5 @@ require (
 	github.com/nats-io/nats.go v1.9.2
 	github.com/pkg/errors v0.8.1
 	github.com/shopspring/decimal v0.0.0-20200419222939-1884f454f8ea
+	gopkg.in/go-playground/assert.v1 v1.2.1
 )
