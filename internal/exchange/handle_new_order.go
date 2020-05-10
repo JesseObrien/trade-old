@@ -5,7 +5,7 @@ import (
 	"github.com/jesseobrien/trade/internal/orders"
 )
 
-func (exch *Exchange) HandleOrders() {
+func (exch *Exchange) HandleNewOrders() {
 
 	newOrdersChan := make(chan *orders.Order)
 	exch.natsConn.BindRecvChan("order.created", newOrdersChan)
@@ -15,7 +15,6 @@ func (exch *Exchange) HandleOrders() {
 		case order := <-newOrdersChan:
 			go exch.onNewOrder(order)
 		case <-exch.quit:
-			exch.Stop()
 			return
 		}
 	}
@@ -34,7 +33,9 @@ func (ex *Exchange) onNewOrder(order *orders.Order) {
 
 	market, ok := ex.Symbols[order.Symbol]
 	if !ok {
-		// Handle this error and notify the order failed
+		ex.logger.WithFields(log.Fields{
+			"Symbol": order.Symbol,
+		}).Error("symbol is not registered with the exchange")
 		return
 	}
 	market.Insert(order)

@@ -1,6 +1,8 @@
 package orders
 
 import (
+	"bytes"
+	"html/template"
 	"time"
 
 	"github.com/google/uuid"
@@ -22,7 +24,7 @@ const (
 )
 
 type Order struct {
-	ID                   string          `json:"-"`
+	ID                   string          `json:"id"`
 	TargetFirmID         string          `json:"to,omitempty"`
 	SendingFirmID        string          `json:"from,omitempty"`
 	Symbol               string          `json:"symbol"`
@@ -53,6 +55,31 @@ func NewMarketOrder(symbol string, quantity int64) (order *Order) {
 	return
 }
 
+var displayOrderInTable = `
+| {{.ID}} | {{.Price}} | {{.Quantity -}} |
+`
+
+func (o *Order) Display() string {
+	var buf bytes.Buffer
+	t := template.Must(template.New("order").Parse(displayOrderInTable))
+
+	err := t.Execute(&buf, struct {
+		ID       string
+		Price    string
+		Quantity string
+	}{
+		o.ID,
+		o.Price.StringFixed(2),
+		o.OpenQuantity().String(),
+	})
+
+	if err != nil {
+		panic(err)
+	}
+
+	return buf.String()
+}
+
 func (o *Order) IsClosed() bool {
 	return o.OpenQuantity().Equals(decimal.Zero)
 }
@@ -65,13 +92,15 @@ func (o *Order) OpenQuantity() decimal.Decimal {
 	return *o.openQuantity
 }
 
+// Execute executes a price and quantity update on an order
 func (o *Order) Execute(price, quantity decimal.Decimal) {
-	o.ExecutedQuantity = quantity
+	o.ExecutedQuantity = o.ExecutedQuantity.Add(quantity)
 	o.LastExecutedPrice = price
 	o.LastExecutedQuantity = quantity
 
 }
 
+// Cancel cancels an order
 func (o *Order) Cancel() {
 	openQuantity := decimal.Zero
 	o.openQuantity = &openQuantity

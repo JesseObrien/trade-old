@@ -1,9 +1,9 @@
 package orders
 
 import (
-	"fmt"
+	"bytes"
+	"html/template"
 	"sort"
-	"strings"
 	"time"
 )
 
@@ -22,39 +22,54 @@ func (o orders) Less(i, j int) bool {
 	return o[i].insertedAt.Before(o[j].insertedAt)
 }
 
+// OrderList is a list of orders with functions wrapping it
 type OrderList struct {
 	orders orders
 }
 
-func (ol OrderList) Len() int           { return ol.orders.Len() }
-func (ol OrderList) Swap(i, j int)      { ol.orders.Swap(i, j) }
+// Len is the length of the internal orders slice
+func (ol OrderList) Len() int { return ol.orders.Len() }
+
+// Swap allows us to swap orders
+func (ol OrderList) Swap(i, j int) { ol.orders.Swap(i, j) }
+
+// Less implements a less than check
 func (ol OrderList) Less(i, j int) bool { return ol.orders.Less(i, j) }
 
+const displayOrders = `
+{{- range . -}}
+{{- .Display -}}
+{{- end -}}
+`
+
+// Display shows the current bids
 func (ol *OrderList) Display() string {
-	bids := strings.Builder{}
-	for _, bid := range ol.orders {
-		bids.WriteString(fmt.Sprintf("Price: $%s | Quantity: %s\n", bid.Price.StringFixed(2), bid.OpenQuantity().String()))
+
+	var buf bytes.Buffer
+
+	t := template.Must(template.New("orders").Parse(displayOrders))
+	err := t.Execute(&buf, ol.orders)
+	if err != nil {
+		panic(err)
 	}
 
-	return bids.String()
-}
-func (ol *OrderList) Iter(fn func(*Order)) {
-	for _, order := range ol.orders {
-		fn(order)
-	}
+	return buf.String()
 }
 
+// GetBest gets the first order from the orders
 func (ol *OrderList) GetBest() (order *Order) {
 	order = ol.orders[0]
 	return
 }
 
+// Insert puts a new order into the list
 func (ol *OrderList) Insert(order *Order) {
 	order.insertedAt = time.Now()
 	ol.orders = append(ol.orders, order)
 	sort.Sort(ol)
 }
 
+// Remove takes an order out of the list
 func (ol *OrderList) Remove(orderID string) (order *Order) {
 	for i := 0; i < ol.orders.Len(); i++ {
 		if ol.orders[i].ID == orderID {

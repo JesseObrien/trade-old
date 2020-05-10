@@ -4,6 +4,8 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/jesseobrien/trade/internal/orders"
+
 	"github.com/apex/log"
 	"github.com/nats-io/nats.go"
 
@@ -33,7 +35,8 @@ func (ex *Exchange) Run() {
 
 	defer signal.Stop(ex.quit)
 
-	go ex.HandleOrders()
+	go ex.HandleNewOrders()
+	go ex.HandleCancelOrderRequest()
 
 	m := market.New(ex.logger, "JOBR")
 	price, _ := decimal.NewFromString("2.00")
@@ -43,6 +46,7 @@ func (ex *Exchange) Run() {
 	ex.logger.Info("⏳ Shutting down...")
 }
 
+// Stop will close the exchange channel
 func (ex *Exchange) Stop() {
 	close(ex.quit)
 }
@@ -53,11 +57,14 @@ func (ex *Exchange) IPO(m *market.Market, price decimal.Decimal, sharesIssued in
 	ex.logger.Infof("⚡ New Company IPO: %s issuing %d shares @ $%s/share. Market Cap: $%s", m.Symbol, sharesIssued, price.StringFixed(2), marketCap.StringFixedBank(2))
 
 	ex.Symbols[m.Symbol] = m
-	// @TODO inject an offer with all of the shares at the price
 
-	// o := orders.New(m.Symbol)
-	// o.Quantity = quantityShares
-	// o.Price = price
-	// o.Side = orders.SELLSIDE
-	// o.Type = orders.MARKET
+	o := orders.New(m.Symbol)
+	o.Quantity = quantityShares
+	o.Price = price
+	o.Side = orders.SELLSIDE
+	o.Type = orders.MARKET
+
+	m.Insert(o)
+
+	ex.logger.Info(m.Report())
 }

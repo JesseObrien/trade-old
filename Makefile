@@ -1,6 +1,6 @@
 build:
-	go build -o dist/exchange cmd/exchange/main.go
-	go build -o dist/broker cmd/broker/main.go
+	go build -o dist/trade_exchange cmd/exchange/main.go
+	go build -o dist/trade_http_server cmd/exchangehttp/main.go
 
 docker-build:
 	docker build -f cmd/exchange/Dockerfile -t jesseobrien/exchange .

@@ -27,6 +27,7 @@ func (h *HTTPSrv) Run() {
 	e.HideBanner = true
 
 	e.POST("/orders", h.NewOrder)
+	e.DELETE("/orders", h.CancelOrder)
 
 	e.Logger.Fatal(e.Start(":8080"))
 }
