@@ -69,7 +69,7 @@ func (ob *OrderBook) Report() string {
 
 // Insert puts an order into the orderlist
 func (ob *OrderBook) Insert(order *orders.Order) {
-	if order.Side == orders.BUYSIDE {
+	if order.Side == orders.BuySide {
 		if !ob.FillBuy(order) {
 			ob.Bids.Insert(order)
 		}
@@ -96,156 +96,171 @@ func (ob *OrderBook) Cancel(oid string) (order *orders.Order) {
 }
 
 // Inspiration https://github.com/fmstephe/matching_engine/blob/1f9ff299e0fc65cefd7acd0a637d5764575f4996/matcher/matcher.go
-
+// FillBuy will try to fill a buy order
 func (ob *OrderBook) FillBuy(buyOrder *orders.Order) bool {
-	lwf := ob.logger.WithFields(log.Fields{
+	ob.logger.WithFields(log.Fields{
 		"ID":       buyOrder.ID,
 		"Price":    buyOrder.Price.StringFixed(2),
 		"Quantity": buyOrder.Quantity.String(),
-	})
-
-	lwf.Info("received buy order, attempting to fill")
+	}).Info("received buy order, attempting to fill")
 
 	for {
-
 		if ob.Offers.Len() == 0 {
 			return false
 		}
 
 		sellOrder := ob.Offers.GetMin()
 
-		if buyOrder.Price.Cmp(sellOrder.Price) != -1 {
-			if buyOrder.OpenQuantity().Cmp(sellOrder.OpenQuantity()) == 1 {
-				lwf.Info("matched partial sell")
-				price := sellOrder.Price
-				quantity := sellOrder.OpenQuantity()
-
-				buyOrder.Execute(price, quantity)
-				sellOrder.Execute(price, quantity)
-
-				ob.Offers.Remove(sellOrder.ID)
-				continue
-			}
-
-			if sellOrder.OpenQuantity().Cmp(buyOrder.OpenQuantity()) == 1 {
-				lwf.Info("matched full sell")
-				price := sellOrder.Price
-				quantity := buyOrder.OpenQuantity()
-
-				buyOrder.Execute(price, quantity)
-				sellOrder.Execute(price, quantity)
-
-				return true
-			}
-
-			if sellOrder.OpenQuantity().Cmp(buyOrder.OpenQuantity()) == 0 {
-				lwf.Info("matched matched exact sell")
-				price := sellOrder.Price
-				quantity := buyOrder.OpenQuantity()
-
-				buyOrder.Execute(price, quantity)
-				sellOrder.Execute(price, quantity)
-
-				ob.Offers.Remove(sellOrder.ID)
-
-				return true
-			}
+		if buyOrder.Type == orders.LimitOrder && buyOrder.Price.Cmp(sellOrder.Price) == -1 {
+			ob.logger.WithFields(log.Fields{
+				"Sell Price": sellOrder.Price.StringFixed(2),
+				"Buy Price":  buyOrder.Price.StringFixed(2),
+			}).Info("will not fill order, buy limit exceeded")
+			return false
 		}
 
-		lwf.Info("could not fill buy")
+		if buyOrder.OpenQuantity().Cmp(sellOrder.OpenQuantity()) == 1 {
+			// @TODO need to ensure the sell order is also not a LIMIT and we're exceeding the limit
+			priceDiff := buyOrder.Price.Sub(sellOrder.Price)
+			price := sellOrder.Price.Add(priceDiff.Div(decimal.NewFromInt(2)))
+			quantity := sellOrder.OpenQuantity()
+
+			buyOrder.Execute(price, quantity)
+			sellOrder.Execute(price, quantity)
+
+			ob.Offers.Remove(sellOrder.ID)
+
+			ob.logger.WithFields(log.Fields{
+				"ID":       sellOrder.ID,
+				"Price":    price.StringFixed(2),
+				"Quantity": sellOrder.Quantity.String(),
+			}).Info("matched partial sell")
+
+			continue
+		}
+
+		if sellOrder.OpenQuantity().Cmp(buyOrder.OpenQuantity()) == 1 {
+			priceDiff := buyOrder.Price.Sub(sellOrder.Price)
+			price := sellOrder.Price.Add(priceDiff.Div(decimal.NewFromInt(2)))
+			quantity := buyOrder.OpenQuantity()
+
+			buyOrder.Execute(price, quantity)
+			sellOrder.Execute(price, quantity)
+
+			ob.logger.WithFields(log.Fields{
+				"ID":       sellOrder.ID,
+				"Price":    price.StringFixed(2),
+				"Quantity": sellOrder.Quantity.String(),
+			}).Info("matched full sell")
+
+			return true
+		}
+
+		if sellOrder.OpenQuantity().Cmp(buyOrder.OpenQuantity()) == 0 {
+			priceDiff := buyOrder.Price.Sub(sellOrder.Price)
+			price := sellOrder.Price.Add(priceDiff.Div(decimal.NewFromInt(2)))
+			quantity := buyOrder.OpenQuantity()
+
+			buyOrder.Execute(price, quantity)
+			sellOrder.Execute(price, quantity)
+
+			ob.Offers.Remove(sellOrder.ID)
+
+			ob.logger.WithFields(log.Fields{
+				"ID":       sellOrder.ID,
+				"Price":    price.StringFixed(2),
+				"Quantity": sellOrder.Quantity.String(),
+			}).Info("matched exact sell")
+
+			return true
+		}
+
+		ob.logger.Info("could not fill buy")
 
 		return false
 	}
 }
 
+// FillSell attempts to fill a sell order
 func (ob *OrderBook) FillSell(sellOrder *orders.Order) bool {
-	lwf := ob.logger.WithFields(log.Fields{
+	ob.logger.WithFields(log.Fields{
 		"ID":       sellOrder.ID,
 		"Price":    sellOrder.Price.StringFixed(2),
 		"Quantity": sellOrder.Quantity.String(),
-	})
-
-	lwf.Info("received sell order, attempting to fill")
+	}).Info("received sell order, attempting to fill")
 
 	for {
-
 		if ob.Bids.Len() == 0 {
 			return false
 		}
 
 		buyOrder := ob.Bids.GetMax()
 
-		if buyOrder.Price.Cmp(sellOrder.Price) != -1 {
-
-			if buyOrder.OpenQuantity().Cmp(sellOrder.OpenQuantity()) == 1 {
-				lwf.Info("matched full buy")
-				price := buyOrder.Price
-				quantity := sellOrder.Quantity
-
-				buyOrder.Execute(price, quantity)
-				sellOrder.Execute(price, quantity)
-
-				return true
-			}
-
-			// sell amount is larger
-			if sellOrder.OpenQuantity().Cmp(buyOrder.OpenQuantity()) == 1 {
-				lwf.Info("matched partial buy")
-				price := buyOrder.Price
-				quantity := buyOrder.OpenQuantity()
-
-				buyOrder.Execute(price, quantity)
-				sellOrder.Execute(price, quantity)
-
-				ob.Bids.Remove(buyOrder.ID)
-
-				continue
-			}
-
-			// buy and sell are same
-			if sellOrder.OpenQuantity().Cmp(buyOrder.OpenQuantity()) == 0 {
-				lwf.Info("matched exact buy")
-				price := buyOrder.Price
-				quantity := sellOrder.OpenQuantity()
-
-				buyOrder.Execute(price, quantity)
-				sellOrder.Execute(price, quantity)
-
-				ob.Bids.Remove(buyOrder.ID)
-				return true
-			}
+		if sellOrder.Type == orders.LimitOrder && buyOrder.Price.Cmp(sellOrder.Price) == -1 {
+			ob.logger.WithFields(log.Fields{
+				"Sell Price": sellOrder.Price.StringFixed(2),
+				"Buy Price":  buyOrder.Price.StringFixed(2),
+			}).Info("will not fill order, sell limit exceeded")
+			return false
 		}
-		lwf.Info("could not fill sell")
+
+		if buyOrder.OpenQuantity().Cmp(sellOrder.OpenQuantity()) == 1 {
+			priceDiff := buyOrder.Price.Sub(sellOrder.Price)
+			price := sellOrder.Price.Add(priceDiff.Div(decimal.NewFromInt(2)))
+			quantity := sellOrder.Quantity
+
+			buyOrder.Execute(price, quantity)
+			sellOrder.Execute(price, quantity)
+
+			ob.logger.WithFields(log.Fields{
+				"ID":       sellOrder.ID,
+				"Price":    price.StringFixed(2),
+				"Quantity": sellOrder.Quantity.String(),
+			}).Info("matched full buy")
+
+			return true
+		}
+
+		// sell amount is larger
+		if sellOrder.OpenQuantity().Cmp(buyOrder.OpenQuantity()) == 1 {
+			price := buyOrder.Price
+			quantity := buyOrder.OpenQuantity()
+
+			buyOrder.Execute(price, quantity)
+			sellOrder.Execute(price, quantity)
+
+			ob.Bids.Remove(buyOrder.ID)
+
+			ob.logger.WithFields(log.Fields{
+				"ID":       sellOrder.ID,
+				"Price":    price.StringFixed(2),
+				"Quantity": sellOrder.Quantity.String(),
+			}).Info("matched partial buy")
+
+			continue
+		}
+
+		// sell and buy are the same quantity
+		if sellOrder.OpenQuantity().Cmp(buyOrder.OpenQuantity()) == 0 {
+			price := buyOrder.Price
+			quantity := sellOrder.OpenQuantity()
+
+			buyOrder.Execute(price, quantity)
+			sellOrder.Execute(price, quantity)
+
+			ob.Bids.Remove(buyOrder.ID)
+
+			ob.logger.WithFields(log.Fields{
+				"ID":       sellOrder.ID,
+				"Price":    price.StringFixed(2),
+				"Quantity": sellOrder.Quantity.String(),
+			}).Info("matched exact buy")
+
+			return true
+		}
+
+		ob.logger.Info("could not fill sell")
 
 		return false
 	}
 }
-
-// ob.mu.Lock()
-// 	for ob.Bids.Len() > 0 && ob.Offers.Len() > 0 {
-// 		bestBid := ob.Bids.GetBest()
-// 		bestOffer := ob.Offers.GetBest()
-
-// 		price := bestOffer.Price
-// 		quantity := bestBid.OpenQuantity()
-
-// 		if offerQuantity := bestOffer.OpenQuantity(); offerQuantity.Cmp(quantity) == -1 {
-// 			quantity = offerQuantity
-// 		}
-
-// 		// @TODO probably need mutex locks while we match orders and then possibly remove them
-// 		bestBid.Execute(price, quantity)
-// 		bestOffer.Execute(price, quantity)
-
-// 		matches = append(matches, *bestBid, *bestOffer)
-
-// 		if bestBid.IsClosed() {
-// 			ob.Bids.Remove(bestBid.ID)
-// 		}
-
-// 		if bestOffer.IsClosed() {
-// 			ob.Offers.Remove(bestOffer.ID)
-// 		}
-// 	}
-
-// 	ob.mu.Unlock()

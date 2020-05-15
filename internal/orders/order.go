@@ -12,15 +12,15 @@ import (
 type OrderType string
 
 const (
-	MARKET OrderType = "MARKET_ORDER"
-	LIMIT  OrderType = "LIMIT_ORDER"
+	MarketOrder OrderType = "MARKET_ORDER"
+	LimitOrder  OrderType = "LIMIT_ORDER"
 )
 
 type OrderSide string
 
 const (
-	BUYSIDE  OrderSide = "BUY"
-	SELLSIDE OrderSide = "SELL"
+	BuySide  OrderSide = "BUY"
+	SellSide OrderSide = "SELL"
 )
 
 type Order struct {
@@ -40,6 +40,7 @@ type Order struct {
 	AvgPrice             decimal.Decimal
 }
 
+// New initialize a new order with an ID set
 func New(symbol string) *Order {
 	return &Order{
 		ID:     uuid.New().String(),
@@ -47,9 +48,10 @@ func New(symbol string) *Order {
 	}
 }
 
+// NewMarketOrder set up a new market order for a certain quantity
 func NewMarketOrder(symbol string, quantity int64) (order *Order) {
 	order = New(symbol)
-	order.Type = MARKET
+	order.Type = MarketOrder
 	order.Quantity = decimal.NewFromInt(quantity)
 
 	return
@@ -59,6 +61,7 @@ var displayOrderInTable = `
 | {{.ID}} | {{.Price}} | {{.Quantity -}} |
 `
 
+// Display shows a report of the order
 func (o *Order) Display() string {
 	var buf bytes.Buffer
 	t := template.Must(template.New("order").Parse(displayOrderInTable))
@@ -80,10 +83,12 @@ func (o *Order) Display() string {
 	return buf.String()
 }
 
+// IsClosed If the order's open quantity is empty, it's a closed order
 func (o *Order) IsClosed() bool {
 	return o.OpenQuantity().Equals(decimal.Zero)
 }
 
+// OpenQuantity returns the remaining quantityt that hasn't been filled for this order
 func (o *Order) OpenQuantity() decimal.Decimal {
 	if o.openQuantity == nil {
 		return o.Quantity.Sub(o.ExecutedQuantity)
@@ -95,6 +100,7 @@ func (o *Order) OpenQuantity() decimal.Decimal {
 // Execute executes a price and quantity update on an order
 func (o *Order) Execute(price, quantity decimal.Decimal) {
 	o.ExecutedQuantity = o.ExecutedQuantity.Add(quantity)
+	o.AvgPrice = o.LastExecutedPrice.Add(price).Div(decimal.NewFromInt(2))
 	o.LastExecutedPrice = price
 	o.LastExecutedQuantity = quantity
 }

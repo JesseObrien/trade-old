@@ -60,8 +60,8 @@ func (ex *Exchange) IPO(m *OrderBook, price decimal.Decimal, sharesIssued int64)
 	o := orders.New(m.Symbol)
 	o.Quantity = quantityShares
 	o.Price = price
-	o.Side = orders.SELLSIDE
-	o.Type = orders.MARKET
+	o.Side = orders.SellSide
+	o.Type = orders.MarketOrder
 
 	m.Insert(o)
 
