@@ -121,8 +121,14 @@ func (ob *OrderBook) FillBuy(buyOrder *orders.Order) bool {
 
 		if buyOrder.OpenQuantity().Cmp(sellOrder.OpenQuantity()) == 1 {
 			// @TODO need to ensure the sell order is also not a LIMIT and we're exceeding the limit
+			var price decimal.Decimal
+
 			priceDiff := buyOrder.Price.Sub(sellOrder.Price)
-			price := sellOrder.Price.Add(priceDiff.Div(decimal.NewFromInt(2)))
+			if priceDiff.IsZero() {
+				price = buyOrder.Price
+			} else {
+				price = sellOrder.Price.Add(priceDiff.Div(decimal.NewFromInt(2)))
+			}
 			quantity := sellOrder.OpenQuantity()
 
 			buyOrder.Execute(price, quantity)
@@ -140,8 +146,15 @@ func (ob *OrderBook) FillBuy(buyOrder *orders.Order) bool {
 		}
 
 		if sellOrder.OpenQuantity().Cmp(buyOrder.OpenQuantity()) == 1 {
+			var price decimal.Decimal
+
 			priceDiff := buyOrder.Price.Sub(sellOrder.Price)
-			price := sellOrder.Price.Add(priceDiff.Div(decimal.NewFromInt(2)))
+			if priceDiff.IsZero() {
+				price = buyOrder.Price
+			} else {
+				price = sellOrder.Price.Add(priceDiff.Div(decimal.NewFromInt(2)))
+			}
+
 			quantity := buyOrder.OpenQuantity()
 
 			buyOrder.Execute(price, quantity)
@@ -157,8 +170,14 @@ func (ob *OrderBook) FillBuy(buyOrder *orders.Order) bool {
 		}
 
 		if sellOrder.OpenQuantity().Cmp(buyOrder.OpenQuantity()) == 0 {
+			var price decimal.Decimal
+
 			priceDiff := buyOrder.Price.Sub(sellOrder.Price)
-			price := sellOrder.Price.Add(priceDiff.Div(decimal.NewFromInt(2)))
+			if priceDiff.IsZero() {
+				price = buyOrder.Price
+			} else {
+				price = sellOrder.Price.Add(priceDiff.Div(decimal.NewFromInt(2)))
+			}
 			quantity := buyOrder.OpenQuantity()
 
 			buyOrder.Execute(price, quantity)
@@ -205,8 +224,14 @@ func (ob *OrderBook) FillSell(sellOrder *orders.Order) bool {
 		}
 
 		if buyOrder.OpenQuantity().Cmp(sellOrder.OpenQuantity()) == 1 {
+			var price decimal.Decimal
+
 			priceDiff := buyOrder.Price.Sub(sellOrder.Price)
-			price := sellOrder.Price.Add(priceDiff.Div(decimal.NewFromInt(2)))
+			if priceDiff.IsZero() {
+				price = buyOrder.Price
+			} else {
+				price = sellOrder.Price.Add(priceDiff.Div(decimal.NewFromInt(2)))
+			}
 			quantity := sellOrder.Quantity
 
 			buyOrder.Execute(price, quantity)
@@ -223,7 +248,15 @@ func (ob *OrderBook) FillSell(sellOrder *orders.Order) bool {
 
 		// sell amount is larger
 		if sellOrder.OpenQuantity().Cmp(buyOrder.OpenQuantity()) == 1 {
-			price := buyOrder.Price
+			var price decimal.Decimal
+
+			priceDiff := buyOrder.Price.Sub(sellOrder.Price)
+			if priceDiff.IsZero() {
+				price = buyOrder.Price
+			} else {
+				price = sellOrder.Price.Add(priceDiff.Div(decimal.NewFromInt(2)))
+			}
+
 			quantity := buyOrder.OpenQuantity()
 
 			buyOrder.Execute(price, quantity)
@@ -242,7 +275,14 @@ func (ob *OrderBook) FillSell(sellOrder *orders.Order) bool {
 
 		// sell and buy are the same quantity
 		if sellOrder.OpenQuantity().Cmp(buyOrder.OpenQuantity()) == 0 {
-			price := buyOrder.Price
+			var price decimal.Decimal
+
+			priceDiff := buyOrder.Price.Sub(sellOrder.Price)
+			if priceDiff.IsZero() {
+				price = buyOrder.Price
+			} else {
+				price = sellOrder.Price.Add(priceDiff.Div(decimal.NewFromInt(2)))
+			}
 			quantity := sellOrder.OpenQuantity()
 
 			buyOrder.Execute(price, quantity)

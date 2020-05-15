@@ -19,7 +19,8 @@ func (o orders) Less(i, j int) bool {
 		return false
 	}
 
-	return o[i].insertedAt.Before(o[j].insertedAt)
+	// FIFO requires that we reverse sort by time, we want the first in to be the first out
+	return o[i].insertedAt.After(o[j].insertedAt)
 }
 
 // OrderList is a list of orders with functions wrapping it
