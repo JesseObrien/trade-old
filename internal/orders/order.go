@@ -100,7 +100,9 @@ func (o *Order) OpenQuantity() decimal.Decimal {
 // Execute executes a price and quantity update on an order
 func (o *Order) Execute(price, quantity decimal.Decimal) {
 	o.ExecutedQuantity = o.ExecutedQuantity.Add(quantity)
-	o.AvgPrice = o.LastExecutedPrice.Add(price).Div(decimal.NewFromInt(2))
+
+	o.AvgPrice = price
+
 	o.LastExecutedPrice = price
 	o.LastExecutedQuantity = quantity
 }

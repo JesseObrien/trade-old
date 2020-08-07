@@ -239,6 +239,42 @@ func TestOrderBook_DoesNotFillLimitSellWhenLimitExceeded(t *testing.T) {
 }
 
 func TestOrderBook_AveragePriceSellIsAccurate(t *testing.T) {
-	t.Skip("Implement the average price test")
+	symbol := "TEST"
+
+	ob := NewOrderBook(log.Logger{
+		Handler: memory.New(),
+		Level:   log.DebugLevel,
+	}, symbol)
+
+	testBuy := orders.New(symbol)
+	testBuy.Side = orders.BuySide
+	testBuy.Type = orders.MarketOrder
+	testBuy.Quantity = decimal.NewFromFloat(10)
+	testBuy.Price = decimal.NewFromFloat(1.00)
+
+	testBuyTwo := orders.New(symbol)
+	testBuyTwo.Side = orders.BuySide
+	testBuyTwo.Type = orders.MarketOrder
+	testBuyTwo.Quantity = decimal.NewFromInt(10)
+	testBuyTwo.Price = decimal.NewFromFloat(0.90)
+
+	ob.Insert(testBuy)
+	ob.Insert(testBuyTwo)
+
+	testSell := orders.New(symbol)
+	testSell.Side = orders.SellSide
+	testSell.Type = orders.LimitOrder
+	testSell.Quantity = decimal.NewFromInt(20)
+
+	// Set a limit sell order for $0.99, it should not execute unless the buy price is higher
+	testSell.Price = decimal.NewFromFloat(0.85)
+
+	ob.Insert(testSell)
+
+	assert.True(t, testBuy.IsClosed())
+	assert.True(t, testBuyTwo.IsClosed())
+	assert.True(t, testSell.IsClosed())
+	t.Logf("avg price %v", testSell.AvgPrice)
+	assert.Equal(t, 0, testSell.AvgPrice.Cmp(decimal.NewFromFloat(0.95)))
 
 }
