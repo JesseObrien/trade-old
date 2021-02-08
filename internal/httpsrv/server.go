@@ -26,6 +26,8 @@ func (h *HTTPSrv) Run() {
 	e := echo.New()
 	e.HideBanner = true
 
+	e.GET("/symbols", h.GetSymbols)
+
 	e.POST("/orders", h.NewOrder)
 	e.DELETE("/orders", h.CancelOrder)
 

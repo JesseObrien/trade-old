@@ -25,17 +25,17 @@ func (o orders) Less(i, j int) bool {
 
 // OrderList is a list of orders with functions wrapping it
 type OrderList struct {
-	orders orders
+	Orders orders `json:"Orders"`
 }
 
 // Len is the length of the internal orders slice
-func (ol OrderList) Len() int { return ol.orders.Len() }
+func (ol OrderList) Len() int { return ol.Orders.Len() }
 
 // Swap allows us to swap orders
-func (ol OrderList) Swap(i, j int) { ol.orders.Swap(i, j) }
+func (ol OrderList) Swap(i, j int) { ol.Orders.Swap(i, j) }
 
 // Less implements a less than check
-func (ol OrderList) Less(i, j int) bool { return ol.orders.Less(i, j) }
+func (ol OrderList) Less(i, j int) bool { return ol.Orders.Less(i, j) }
 
 const displayOrders = `
 {{- range . -}}
@@ -49,7 +49,7 @@ func (ol *OrderList) Display() string {
 	var buf bytes.Buffer
 
 	t := template.Must(template.New("orders").Parse(displayOrders))
-	err := t.Execute(&buf, ol.orders)
+	err := t.Execute(&buf, ol.Orders)
 	if err != nil {
 		panic(err)
 	}
@@ -59,28 +59,28 @@ func (ol *OrderList) Display() string {
 
 // GetBest gets the first order from the orders
 func (ol *OrderList) GetMax() (order *Order) {
-	order = ol.orders[0]
+	order = ol.Orders[0]
 	return
 }
 
 func (ol *OrderList) GetMin() (order *Order) {
-	order = ol.orders[len(ol.orders)-1]
+	order = ol.Orders[len(ol.Orders)-1]
 	return
 }
 
 // Insert puts a new order into the list
 func (ol *OrderList) Insert(order *Order) {
 	order.insertedAt = time.Now()
-	ol.orders = append(ol.orders, order)
+	ol.Orders = append(ol.Orders, order)
 	sort.Sort(ol)
 }
 
 // Remove takes an order out of the list
 func (ol *OrderList) Remove(orderID string) (order *Order) {
-	for i := 0; i < ol.orders.Len(); i++ {
-		if ol.orders[i].ID == orderID {
-			order = ol.orders[i]
-			ol.orders = append(ol.orders[:i], ol.orders[i+1:]...)
+	for i := 0; i < ol.Orders.Len(); i++ {
+		if ol.Orders[i].ID == orderID {
+			order = ol.Orders[i]
+			ol.Orders = append(ol.Orders[:i], ol.Orders[i+1:]...)
 			return
 		}
 	}

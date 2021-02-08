@@ -6,7 +6,7 @@ import (
 
 // NewJSONConnection gives you back a json encoded nats connection
 func NewJSONConnection() (*nats.EncodedConn, error) {
-	nc, err := nats.Connect(nats.DefaultURL)
+	nc, err := nats.Connect("nats://192.168.0.100:4222")
 
 	if err != nil {
 		return nil, err

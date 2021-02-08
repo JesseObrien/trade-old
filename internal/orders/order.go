@@ -37,7 +37,7 @@ type Order struct {
 	LastExecutedQuantity decimal.Decimal
 	openQuantity         *decimal.Decimal
 	insertedAt           time.Time
-	AvgPrice             decimal.Decimal
+	AvgPrice             decimal.Decimal `json:"average"`
 }
 
 // New initialize a new order with an ID set

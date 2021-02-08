@@ -12,9 +12,11 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+type SymbolsList map[string]*OrderBook
+
 type Exchange struct {
 	logger   log.Logger
-	Symbols  map[string]*OrderBook
+	Symbols  SymbolsList
 	quit     chan os.Signal
 	natsConn *nats.EncodedConn
 }
@@ -22,7 +24,7 @@ type Exchange struct {
 func New(logger log.Logger, conn *nats.EncodedConn) *Exchange {
 	return &Exchange{
 		logger:   logger,
-		Symbols:  map[string]*OrderBook{},
+		Symbols:  SymbolsList{},
 		natsConn: conn,
 	}
 }
@@ -36,6 +38,7 @@ func (ex *Exchange) Run() {
 
 	go ex.HandleNewOrders()
 	go ex.HandleCancelOrderRequest()
+	go ex.HandleGetSymbolsRequest()
 
 	ob := NewOrderBook(ex.logger, "JOBR")
 	price, _ := decimal.NewFromString("2.00")
@@ -53,7 +56,7 @@ func (ex *Exchange) Stop() {
 func (ex *Exchange) IPO(m *OrderBook, price decimal.Decimal, sharesIssued int64) {
 	quantityShares := decimal.NewFromInt(sharesIssued)
 	marketCap := price.Mul(quantityShares)
-	ex.logger.Infof("⚡ New Company IPO: %s issuing %d shares @ $%s/share. COrderBookap: $%s", m.Symbol, sharesIssued, price.StringFixed(2), marketCap.StringFixedBank(2))
+	ex.logger.Infof("⚡ New Company IPO: %s issuing %d shares @ $%s/share. OrderBook: $%s", m.Symbol, sharesIssued, price.StringFixed(2), marketCap.StringFixedBank(2))
 
 	ex.Symbols[m.Symbol] = m
 

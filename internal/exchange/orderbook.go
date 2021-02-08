@@ -12,10 +12,10 @@ import (
 
 type OrderBook struct {
 	logger     log.Logger
-	Symbol     string
-	Bids       *orders.OrderList
-	Offers     *orders.OrderList
-	Executions []Execution
+	Symbol     string            `json:"symbol"`
+	Bids       *orders.OrderList `json:"bids"`
+	Offers     *orders.OrderList `json:"offers"`
+	Executions []*Execution      `json:"executions"`
 
 	MarketPrice decimal.Decimal
 
@@ -80,7 +80,7 @@ func (ob *OrderBook) Insert(order *orders.Order) {
 	}
 }
 
-// Cancel will cancel an order
+// Cancel will cancel an open order
 func (ob *OrderBook) Cancel(oid string) (order *orders.Order) {
 	order = ob.Bids.Remove(oid)
 
@@ -132,7 +132,10 @@ func (ob *OrderBook) FillBuy(buyOrder *orders.Order) bool {
 			quantity := sellOrder.OpenQuantity()
 
 			buyOrder.Execute(price, quantity)
+			ob.Executions = append(ob.Executions, NewExecution(*buyOrder, PARTIALLY_FILLED))
+
 			sellOrder.Execute(price, quantity)
+			ob.Executions = append(ob.Executions, NewExecution(*sellOrder, FILLED))
 
 			ob.Offers.Remove(sellOrder.ID)
 
@@ -158,7 +161,10 @@ func (ob *OrderBook) FillBuy(buyOrder *orders.Order) bool {
 			quantity := buyOrder.OpenQuantity()
 
 			buyOrder.Execute(price, quantity)
+			ob.Executions = append(ob.Executions, NewExecution(*buyOrder, FILLED))
+
 			sellOrder.Execute(price, quantity)
+			ob.Executions = append(ob.Executions, NewExecution(*sellOrder, PARTIALLY_FILLED))
 
 			ob.logger.WithFields(log.Fields{
 				"ID":       sellOrder.ID,
@@ -181,7 +187,9 @@ func (ob *OrderBook) FillBuy(buyOrder *orders.Order) bool {
 			quantity := buyOrder.OpenQuantity()
 
 			buyOrder.Execute(price, quantity)
+			ob.Executions = append(ob.Executions, NewExecution(*buyOrder, FILLED))
 			sellOrder.Execute(price, quantity)
+			ob.Executions = append(ob.Executions, NewExecution(*sellOrder, FILLED))
 
 			ob.Offers.Remove(sellOrder.ID)
 
@@ -235,13 +243,16 @@ func (ob *OrderBook) FillSell(sellOrder *orders.Order) bool {
 			quantity := sellOrder.Quantity
 
 			buyOrder.Execute(price, quantity)
+			ob.Executions = append(ob.Executions, NewExecution(*buyOrder, PARTIALLY_FILLED))
+
 			sellOrder.Execute(price, quantity)
+			ob.Executions = append(ob.Executions, NewExecution(*sellOrder, FILLED))
 
 			ob.logger.WithFields(log.Fields{
 				"ID":       sellOrder.ID,
 				"Price":    price.StringFixed(2),
 				"Quantity": sellOrder.Quantity.String(),
-			}).Info("matched full buy")
+			}).Info("matched full buy, filled sell order")
 
 			return true
 		}
@@ -260,7 +271,9 @@ func (ob *OrderBook) FillSell(sellOrder *orders.Order) bool {
 			quantity := buyOrder.OpenQuantity()
 
 			buyOrder.Execute(price, quantity)
+			ob.Executions = append(ob.Executions, NewExecution(*buyOrder, FILLED))
 			sellOrder.Execute(price, quantity)
+			ob.Executions = append(ob.Executions, NewExecution(*sellOrder, PARTIALLY_FILLED))
 
 			ob.Bids.Remove(buyOrder.ID)
 
@@ -268,7 +281,7 @@ func (ob *OrderBook) FillSell(sellOrder *orders.Order) bool {
 				"ID":       sellOrder.ID,
 				"Price":    price.StringFixed(2),
 				"Quantity": sellOrder.Quantity.String(),
-			}).Info("matched partial buy")
+			}).Info("matched partial buy, partially filled sell order")
 
 			continue
 		}
@@ -286,7 +299,9 @@ func (ob *OrderBook) FillSell(sellOrder *orders.Order) bool {
 			quantity := sellOrder.OpenQuantity()
 
 			buyOrder.Execute(price, quantity)
+			ob.Executions = append(ob.Executions, NewExecution(*buyOrder, FILLED))
 			sellOrder.Execute(price, quantity)
+			ob.Executions = append(ob.Executions, NewExecution(*sellOrder, FILLED))
 
 			ob.Bids.Remove(buyOrder.ID)
 

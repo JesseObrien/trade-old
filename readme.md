@@ -4,15 +4,11 @@ An attempt at a Stock Exchange Simulation
 
 ## Build and Run
 
-`go build -o dist/trade cmd/trade/main.go && ./dist/trade`
+`make build`
 
-## Build
+`./dist/trade_exchange`
 
-`go build -o dist/trade cmd/trade/main.go`
-
-## Run
-
-`./dist/trade`
+`./dist/trade_http_server`
 
 ### Reading
 

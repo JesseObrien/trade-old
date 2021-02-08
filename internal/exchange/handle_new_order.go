@@ -8,13 +8,17 @@ import (
 func (ex *Exchange) HandleNewOrders() {
 
 	newOrdersChan := make(chan *orders.Order)
-	ex.natsConn.BindRecvChan("order.created", newOrdersChan)
+	sub, err := ex.natsConn.BindRecvChan("order.created", newOrdersChan)
+	if err != nil {
+		ex.logger.Errorf("Could not bind nats connection for order.created: %v", err)
+	}
 
 	for {
 		select {
 		case order := <-newOrdersChan:
 			go ex.onNewOrder(order)
 		case <-ex.quit:
+			sub.Unsubscribe()
 			return
 		}
 	}
@@ -42,8 +46,4 @@ func (ex *Exchange) onNewOrder(order *orders.Order) {
 	orderbook.Insert(order)
 
 	ex.logger.Info(orderbook.Report())
-}
-
-func (ex *Exchange) Match(o *orders.Order) {
-
 }
