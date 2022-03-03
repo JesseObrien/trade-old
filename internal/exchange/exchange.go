@@ -5,6 +5,7 @@ import (
 	"os/signal"
 
 	"github.com/jesseobrien/trade/internal/orders"
+	"github.com/jesseobrien/trade/internal/types"
 
 	"github.com/apex/log"
 	"github.com/nats-io/nats.go"
@@ -12,20 +13,20 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-type SymbolsList map[string]*OrderBook
+type OrderBooks map[types.Symbol]*OrderBook
 
 type Exchange struct {
-	logger   log.Logger
-	Symbols  SymbolsList
-	quit     chan os.Signal
-	natsConn *nats.EncodedConn
+	logger     log.Logger
+	OrderBooks OrderBooks
+	quit       chan os.Signal
+	natsConn   *nats.EncodedConn
 }
 
 func New(logger log.Logger, conn *nats.EncodedConn) *Exchange {
 	return &Exchange{
-		logger:   logger,
-		Symbols:  SymbolsList{},
-		natsConn: conn,
+		logger:     logger,
+		OrderBooks: OrderBooks{},
+		natsConn:   conn,
 	}
 }
 
@@ -56,9 +57,11 @@ func (ex *Exchange) Stop() {
 func (ex *Exchange) IPO(m *OrderBook, price decimal.Decimal, sharesIssued int64) {
 	quantityShares := decimal.NewFromInt(sharesIssued)
 	marketCap := price.Mul(quantityShares)
+	ex.logger.Infof("--------------------------------------------------------------------")
 	ex.logger.Infof("⚡ New Company IPO: %s issuing %d shares @ $%s/share. OrderBook: $%s", m.Symbol, sharesIssued, price.StringFixed(2), marketCap.StringFixedBank(2))
+	ex.logger.Infof("--------------------------------------------------------------------")
 
-	ex.Symbols[m.Symbol] = m
+	ex.OrderBooks[m.Symbol] = m
 
 	o := orders.New(m.Symbol)
 	o.Quantity = quantityShares

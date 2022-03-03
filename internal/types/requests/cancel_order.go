@@ -1,8 +1,10 @@
 package requests
 
+import "github.com/jesseobrien/trade/internal/types"
+
 // CancelOrder allows us to cancel an order
 type CancelOrder struct {
-	Symbol  string
+	Symbol  types.Symbol
 	OrderID string `json:"order_id"`
 }
 

@@ -28,7 +28,7 @@ func (ex *Exchange) onGetSymbols(msg *nats.Msg) {
 
 	ex.logger.Info("Symbols requested")
 
-	if err := ex.natsConn.Publish(msg.Reply, ex.Symbols); err != nil {
+	if err := ex.natsConn.Publish(msg.Reply, ex.OrderBooks); err != nil {
 		ex.logger.Errorf("error replying with symbols: %v", err)
 		return
 	}

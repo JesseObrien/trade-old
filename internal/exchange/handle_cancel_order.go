@@ -9,7 +9,7 @@ import (
 
 // HandleCancelOrderRequest processes cancel order requests
 func (ex *Exchange) HandleCancelOrderRequest() {
-	ex.natsConn.Subscribe("order.cancelled", func(subj, replySubject string, request requests.CancelOrder) {
+	sub, err := ex.natsConn.Subscribe("order.cancelled", func(subj, replySubject string, request requests.CancelOrder) {
 		ex.logger.WithFields(log.Fields{
 			"Symbol":  request.Symbol,
 			"OrderID": request.OrderID,
@@ -18,7 +18,7 @@ func (ex *Exchange) HandleCancelOrderRequest() {
 		var message string
 		var cancelled bool
 
-		orderbook, ok := ex.Symbols[request.Symbol]
+		orderbook, ok := ex.OrderBooks[request.Symbol]
 
 		if !ok {
 			message = fmt.Sprintf("no orderbook found for symbol %s", request.Symbol)
@@ -34,18 +34,27 @@ func (ex *Exchange) HandleCancelOrderRequest() {
 
 		ex.logger.Info(orderbook.Report())
 
-		ex.natsConn.Publish(replySubject, &requests.CancelOrderResponse{
+		err := ex.natsConn.Publish(replySubject, &requests.CancelOrderResponse{
 			Request:   request,
 			Cancelled: cancelled,
 			Message:   message,
 		})
+		if err != nil {
+			panic(err)
+		}
 	})
 
+	if err != nil {
+		panic(err)
+	}
+
 	for {
-		select {
-		case <-ex.quit:
-			return
+		<-ex.quit
+		err := sub.Unsubscribe()
+		if err != nil {
+			panic(err)
 		}
+		return
 	}
 
 }

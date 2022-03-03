@@ -2,27 +2,26 @@ package exchange
 
 import (
 	"bytes"
-	"sync"
 	"text/template"
 
 	"github.com/apex/log"
 	"github.com/jesseobrien/trade/internal/orders"
+	"github.com/jesseobrien/trade/internal/types"
 	"github.com/shopspring/decimal"
 )
 
 type OrderBook struct {
-	logger     log.Logger
-	Symbol     string            `json:"symbol"`
-	Bids       *orders.OrderList `json:"bids"`
-	Offers     *orders.OrderList `json:"offers"`
-	Executions []*Execution      `json:"executions"`
+	logger      log.Logger
+	Symbol      types.Symbol      `json:"symbol"`
+	Description string            `json:"description"`
+	Bids        *orders.OrderList `json:"bids"`
+	Offers      *orders.OrderList `json:"offers"`
+	Executions  []*Execution      `json:"executions"`
 
 	MarketPrice decimal.Decimal
-
-	mu sync.Mutex
 }
 
-func NewOrderBook(logger log.Logger, symbol string) *OrderBook {
+func NewOrderBook(logger log.Logger, symbol types.Symbol) *OrderBook {
 	return &OrderBook{
 		logger: logger,
 		Symbol: symbol,
@@ -51,7 +50,7 @@ func (ob *OrderBook) Report() string {
 	t := template.Must(template.New("orderbook").Parse(displayOrderBookOrders))
 
 	err := t.Execute(&buf, struct {
-		Symbol string
+		Symbol Symbol
 		Bids   *orders.OrderList
 		Offers *orders.OrderList
 	}{

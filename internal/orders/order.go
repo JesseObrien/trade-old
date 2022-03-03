@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jesseobrien/trade/internal/types"
 	"github.com/shopspring/decimal"
 )
 
@@ -27,7 +28,7 @@ type Order struct {
 	ID                   string          `json:"id"`
 	TargetFirmID         string          `json:"to,omitempty"`
 	SendingFirmID        string          `json:"from,omitempty"`
-	Symbol               string          `json:"symbol"`
+	Symbol               types.Symbol    `json:"symbol"`
 	Type                 OrderType       `json:"order_type"`
 	Price                decimal.Decimal `json:"price,omitempty"`
 	Side                 OrderSide       `json:"order_side"`
@@ -41,7 +42,7 @@ type Order struct {
 }
 
 // New initialize a new order with an ID set
-func New(symbol string) *Order {
+func New(symbol types.Symbol) *Order {
 	return &Order{
 		ID:     uuid.New().String(),
 		Symbol: symbol,
@@ -49,7 +50,7 @@ func New(symbol string) *Order {
 }
 
 // NewMarketOrder set up a new market order for a certain quantity
-func NewMarketOrder(symbol string, quantity int64) (order *Order) {
+func NewMarketOrder(symbol types.Symbol, quantity int64) (order *Order) {
 	order = New(symbol)
 	order.Type = MarketOrder
 	order.Quantity = decimal.NewFromInt(quantity)

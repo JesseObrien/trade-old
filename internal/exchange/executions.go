@@ -3,6 +3,7 @@ package exchange
 import (
 	"github.com/google/uuid"
 	"github.com/jesseobrien/trade/internal/orders"
+	"github.com/jesseobrien/trade/internal/types"
 	"github.com/shopspring/decimal"
 )
 
@@ -20,7 +21,7 @@ type Execution struct {
 	OrderID            string
 	ExecutionID        string
 	ExecutionType      ExecutionType
-	Symbol             string
+	Symbol             types.Symbol
 	Side               orders.OrderSide
 	LeavesQuantity     decimal.Decimal
 	CumulativeQuantity decimal.Decimal

@@ -8,11 +8,12 @@ import (
 	"github.com/apex/log"
 	"github.com/apex/log/handlers/memory"
 	"github.com/jesseobrien/trade/internal/orders"
+	"github.com/jesseobrien/trade/internal/types"
 	"github.com/shopspring/decimal"
 )
 
 func TestOrderBook_FillsMarketBuysOnInsert(t *testing.T) {
-	symbol := "TEST"
+	symbol := types.Symbol("TEST")
 
 	ob := NewOrderBook(log.Logger{
 		Handler: memory.New(),

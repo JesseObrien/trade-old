@@ -6,9 +6,13 @@ An attempt at a Stock Exchange Simulation
 
 `make build`
 
+You will need NATS server running somewhere. Check the docker-compose for details on ports and such.
+
 `./dist/trade_exchange`
 
 `./dist/trade_http_server`
+
+HTTP server runs on 8088.
 
 ### Reading
 

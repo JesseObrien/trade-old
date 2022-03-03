@@ -18,7 +18,10 @@ func (ex *Exchange) HandleNewOrders() {
 		case order := <-newOrdersChan:
 			go ex.onNewOrder(order)
 		case <-ex.quit:
-			sub.Unsubscribe()
+			err := sub.Unsubscribe()
+			if err != nil {
+				ex.logger.Error(err.Error())
+			}
 			return
 		}
 	}
@@ -35,7 +38,7 @@ func (ex *Exchange) onNewOrder(order *orders.Order) {
 		"Value":     order.Price.Mul(order.Quantity).StringFixed(2),
 	}).Info("💸 A new order was received!")
 
-	orderbook, ok := ex.Symbols[order.Symbol]
+	orderbook, ok := ex.OrderBooks[order.Symbol]
 	if !ok {
 		ex.logger.WithFields(log.Fields{
 			"Symbol": order.Symbol,
