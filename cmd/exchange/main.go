@@ -52,7 +52,7 @@ func main() {
 	scanner := bufio.NewScanner(symbols)
 
 	for scanner.Scan() {
-		ob := exchange.NewOrderBook(logger, exchange.Symbol(scanner.Text()))
+		ob := orderbook.NewOrderBook(logger, exchange.Symbol(scanner.Text()))
 		//min + rand.Float64() * (max - min)
 		randPrice := 1.0 + rand.Float64()*(100.0-1.0)
 		ex.IPO(ob, decimal.NewFromFloat(randPrice), 1000)
